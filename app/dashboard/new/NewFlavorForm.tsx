@@ -28,7 +28,6 @@ export default function NewFlavorForm() {
   const supabase = createClient()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [slug, setSlug] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -40,7 +39,7 @@ export default function NewFlavorForm() {
 
     const { data, error: err } = await supabase
       .from('humor_flavors')
-      .insert({ name: name.trim(), description: description.trim(), slug: slug.trim() })
+      .insert({ slug: name.trim(), description: description.trim() })
       .select()
       .single()
 
@@ -81,16 +80,6 @@ export default function NewFlavorForm() {
           placeholder="Brief description of this humor flavor"
         />
       </div>
-      <div>
-        <label style={labelStyle}>Slug</label>
-        <input
-          style={inputStyle}
-          value={slug}
-          onChange={e => setSlug(e.target.value)}
-          placeholder="e.g. sarcastic-dad-jokes"
-        />
-      </div>
-
       {error && (
         <div style={{ color: 'var(--danger)', fontSize: '13px' }}>{error}</div>
       )}

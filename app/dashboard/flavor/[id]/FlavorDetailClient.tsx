@@ -6,7 +6,6 @@ import { createClient } from '@/app/utils/supabase/browser'
 
 interface Flavor {
   id: string
-  name: string
   description: string | null
   slug: string | null
 }
@@ -14,10 +13,10 @@ interface Flavor {
 interface Step {
   id: string
   humor_flavor_id: string
-  name: string
-  system_prompt: string | null
-  user_prompt: string | null
-  step_order: number
+  description: string | null
+  llm_system_prompt: string | null
+  llm_user_prompt: string | null
+  order_by: number
 }
 
 interface ImageRow {
@@ -96,7 +95,6 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
   const supabase = createClient()
 
   // Flavor edit state
-  const [flavorName, setFlavorName] = useState(flavor.name)
   const [flavorDesc, setFlavorDesc] = useState(flavor.description || '')
   const [flavorSlug, setFlavorSlug] = useState(flavor.slug || '')
   const [savingFlavor, setSavingFlavor] = useState(false)
@@ -110,10 +108,10 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
   // New step state
   const [showNewStep, setShowNewStep] = useState(false)
   const [newStep, setNewStep] = useState({
-    name: '',
-    system_prompt: '',
-    user_prompt: '',
-    step_order: (initialSteps.length + 1),
+    description: '',
+    llm_system_prompt: '',
+    llm_user_prompt: '',
+    order_by: (initialSteps.length + 1),
   })
   const [savingStep, setSavingStep] = useState(false)
 
@@ -130,7 +128,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
     setFlavorMsg('')
     const { error } = await supabase
       .from('humor_flavors')
-      .update({ name: flavorName, description: flavorDesc, slug: flavorSlug })
+      .update({ description: flavorDesc, slug: flavorSlug })
       .eq('id', flavor.id)
     setSavingFlavor(false)
     setFlavorMsg(error ? `Error: ${error.message}` : 'Saved!')
@@ -139,23 +137,22 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
 
   // --- Step CRUD ---
   async function createStep() {
-    if (!newStep.name.trim()) return
     setSavingStep(true)
     const { data, error } = await supabase
       .from('humor_flavor_steps')
       .insert({
         humor_flavor_id: flavor.id,
-        name: newStep.name,
-        system_prompt: newStep.system_prompt,
-        user_prompt: newStep.user_prompt,
-        step_order: newStep.step_order,
+        description: newStep.description,
+        llm_system_prompt: newStep.llm_system_prompt,
+        llm_user_prompt: newStep.llm_user_prompt,
+        order_by: newStep.order_by,
       })
       .select()
       .single()
     setSavingStep(false)
     if (!error && data) {
-      setSteps(prev => [...prev, data].sort((a, b) => a.step_order - b.step_order))
-      setNewStep({ name: '', system_prompt: '', user_prompt: '', step_order: steps.length + 2 })
+      setSteps(prev => [...prev, data].sort((a, b) => a.order_by - b.order_by))
+      setNewStep({ description: '', llm_system_prompt: '', llm_user_prompt: '', order_by: steps.length + 2 })
       setShowNewStep(false)
     }
   }
@@ -170,16 +167,16 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
     const { error } = await supabase
       .from('humor_flavor_steps')
       .update({
-        name: editForm.name,
-        system_prompt: editForm.system_prompt,
-        user_prompt: editForm.user_prompt,
-        step_order: editForm.step_order,
+        description: editForm.description,
+        llm_system_prompt: editForm.llm_system_prompt,
+        llm_user_prompt: editForm.llm_user_prompt,
+        order_by: editForm.order_by,
       })
       .eq('id', editingStep)
     if (!error) {
       setSteps(prev =>
         prev.map(s => s.id === editingStep ? { ...s, ...editForm } as Step : s)
-          .sort((a, b) => a.step_order - b.step_order)
+          .sort((a, b) => a.order_by - b.order_by)
       )
       setEditingStep(null)
     }
@@ -198,20 +195,20 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
 
     const a = steps[idx]
     const b = steps[swapIdx]
-    const newOrderA = b.step_order
-    const newOrderB = a.step_order
+    const newOrderA = b.order_by
+    const newOrderB = a.order_by
 
     await Promise.all([
-      supabase.from('humor_flavor_steps').update({ step_order: newOrderA }).eq('id', a.id),
-      supabase.from('humor_flavor_steps').update({ step_order: newOrderB }).eq('id', b.id),
+      supabase.from('humor_flavor_steps').update({ order_by: newOrderA }).eq('id', a.id),
+      supabase.from('humor_flavor_steps').update({ order_by: newOrderB }).eq('id', b.id),
     ])
 
     setSteps(prev =>
       prev.map(s => {
-        if (s.id === a.id) return { ...s, step_order: newOrderA }
-        if (s.id === b.id) return { ...s, step_order: newOrderB }
+        if (s.id === a.id) return { ...s, order_by: newOrderA }
+        if (s.id === b.id) return { ...s, order_by: newOrderB }
         return s
-      }).sort((a, b) => a.step_order - b.step_order)
+      }).sort((a, b) => a.order_by - b.order_by)
     )
   }
 
@@ -267,7 +264,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
             <label style={labelStyle}>Name</label>
-            <input style={inputStyle} value={flavorName} onChange={e => setFlavorName(e.target.value)} />
+            <input style={inputStyle} value={flavorSlug} onChange={e => setFlavorSlug(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>Description</label>
@@ -276,10 +273,6 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
               value={flavorDesc}
               onChange={e => setFlavorDesc(e.target.value)}
             />
-          </div>
-          <div>
-            <label style={labelStyle}>Slug</label>
-            <input style={inputStyle} value={flavorSlug} onChange={e => setFlavorSlug(e.target.value)} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={saveFlavor} disabled={savingFlavor} style={btnPrimary}>
@@ -316,20 +309,20 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: 600 }}>New Step</h3>
             <div>
-              <label style={labelStyle}>Name *</label>
-              <input style={inputStyle} value={newStep.name} onChange={e => setNewStep(p => ({ ...p, name: e.target.value }))} />
+              <label style={labelStyle}>Description</label>
+              <input style={inputStyle} value={newStep.description} onChange={e => setNewStep(p => ({ ...p, description: e.target.value }))} />
             </div>
             <div>
-              <label style={labelStyle}>Step Order</label>
-              <input style={inputStyle} type="number" value={newStep.step_order} onChange={e => setNewStep(p => ({ ...p, step_order: Number(e.target.value) }))} />
+              <label style={labelStyle}>Order</label>
+              <input style={inputStyle} type="number" value={newStep.order_by} onChange={e => setNewStep(p => ({ ...p, order_by: Number(e.target.value) }))} />
             </div>
             <div>
               <label style={labelStyle}>System Prompt</label>
-              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={newStep.system_prompt} onChange={e => setNewStep(p => ({ ...p, system_prompt: e.target.value }))} />
+              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={newStep.llm_system_prompt} onChange={e => setNewStep(p => ({ ...p, llm_system_prompt: e.target.value }))} />
             </div>
             <div>
               <label style={labelStyle}>User Prompt</label>
-              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={newStep.user_prompt} onChange={e => setNewStep(p => ({ ...p, user_prompt: e.target.value }))} />
+              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={newStep.llm_user_prompt} onChange={e => setNewStep(p => ({ ...p, llm_user_prompt: e.target.value }))} />
             </div>
             <div>
               <button onClick={createStep} disabled={savingStep} style={btnPrimary}>
@@ -355,20 +348,20 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
                 {editingStep === step.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div>
-                      <label style={labelStyle}>Name</label>
-                      <input style={inputStyle} value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
+                      <label style={labelStyle}>Description</label>
+                      <input style={inputStyle} value={editForm.description || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Step Order</label>
-                      <input style={inputStyle} type="number" value={editForm.step_order ?? step.step_order} onChange={e => setEditForm(p => ({ ...p, step_order: Number(e.target.value) }))} />
+                      <label style={labelStyle}>Order</label>
+                      <input style={inputStyle} type="number" value={editForm.order_by ?? step.order_by} onChange={e => setEditForm(p => ({ ...p, order_by: Number(e.target.value) }))} />
                     </div>
                     <div>
                       <label style={labelStyle}>System Prompt</label>
-                      <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={editForm.system_prompt || ''} onChange={e => setEditForm(p => ({ ...p, system_prompt: e.target.value }))} />
+                      <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={editForm.llm_system_prompt || ''} onChange={e => setEditForm(p => ({ ...p, llm_system_prompt: e.target.value }))} />
                     </div>
                     <div>
                       <label style={labelStyle}>User Prompt</label>
-                      <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={editForm.user_prompt || ''} onChange={e => setEditForm(p => ({ ...p, user_prompt: e.target.value }))} />
+                      <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={editForm.llm_user_prompt || ''} onChange={e => setEditForm(p => ({ ...p, llm_user_prompt: e.target.value }))} />
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={saveEdit} style={btnPrimary}>Save</button>
@@ -386,8 +379,8 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
                           padding: '1px 8px',
                           fontSize: '11px',
                           fontWeight: 700,
-                        }}>#{step.step_order}</span>
-                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{step.name}</span>
+                        }}>#{step.order_by}</span>
+                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{step.description}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                         <button
@@ -406,16 +399,16 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
                         <button onClick={() => deleteStep(step.id)} style={btnDanger}>Delete</button>
                       </div>
                     </div>
-                    {step.system_prompt && (
+                    {step.llm_system_prompt && (
                       <div style={{ marginTop: '8px' }}>
                         <span style={{ ...labelStyle, display: 'inline' }}>System: </span>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.system_prompt.slice(0, 200)}{step.system_prompt.length > 200 ? '…' : ''}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.llm_system_prompt.slice(0, 200)}{step.llm_system_prompt.length > 200 ? '…' : ''}</span>
                       </div>
                     )}
-                    {step.user_prompt && (
+                    {step.llm_user_prompt && (
                       <div style={{ marginTop: '4px' }}>
                         <span style={{ ...labelStyle, display: 'inline' }}>User: </span>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.user_prompt.slice(0, 200)}{step.user_prompt.length > 200 ? '…' : ''}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.llm_user_prompt.slice(0, 200)}{step.llm_user_prompt.length > 200 ? '…' : ''}</span>
                       </div>
                     )}
                   </div>

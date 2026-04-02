@@ -7,8 +7,8 @@ export default async function DashboardPage() {
 
   const { data: flavors, error } = await supabase
     .from('humor_flavors')
-    .select('id, name, description, slug')
-    .order('name')
+    .select('id, description, slug')
+    .order('slug')
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
@@ -71,26 +71,12 @@ export default async function DashboardPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        {flavor.name}
+                        {flavor.slug}
                       </h2>
                       {flavor.description && (
                         <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{flavor.description}</p>
                       )}
                     </div>
-                    {flavor.slug && (
-                      <span style={{
-                        background: 'var(--tag-bg)',
-                        color: 'var(--tag-text)',
-                        padding: '2px 10px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        flexShrink: 0,
-                        marginLeft: '12px',
-                      }}>
-                        {flavor.slug}
-                      </span>
-                    )}
                   </div>
                 </div>
               </Link>
