@@ -62,12 +62,8 @@ export default async function DashboardPage() {
                   border: '1px solid var(--border)',
                   borderRadius: '10px',
                   padding: '20px 24px',
-                  transition: 'border-color 0.15s',
                   cursor: 'pointer',
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-                >
+                }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
