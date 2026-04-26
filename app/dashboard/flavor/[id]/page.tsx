@@ -20,7 +20,7 @@ export default async function FlavorDetailPage({ params }: Props) {
       .from('humor_flavor_steps')
       .select('*')
       .eq('humor_flavor_id', id)
-      .order('step_order'),
+      .order('order_by'),
     supabase
       .from('images')
       .select('id, url, title')
