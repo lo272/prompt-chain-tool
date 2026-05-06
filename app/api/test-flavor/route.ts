@@ -58,24 +58,23 @@ export async function POST(request: NextRequest) {
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
   })
-  const raw = await captionRes.text()
-  console.log('RAW:', raw.substring(0, 500))
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseRaw = (raw: string): string[] => {
-    try {
-      const parsed = JSON.parse(raw)
-      if (typeof parsed === 'string') return [parsed]
-      if (Array.isArray(parsed)) return parsed.map((c: any) => typeof c === 'string' ? c : c.content || c.text || c.caption || JSON.stringify(c))
-      if (parsed?.captions) return Array.isArray(parsed.captions) ? parsed.captions.map((c: any) => typeof c === 'string' ? c : c.content || c.text || JSON.stringify(c)) : [String(parsed.captions)]
-      if (parsed?.data) return Array.isArray(parsed.data) ? parsed.data.map((c: any) => typeof c === 'string' ? c : c.content || c.text || JSON.stringify(c)) : [String(parsed.data)]
-      return [raw]
-    } catch {
-      return [raw]
-    }
+  const raw = await captionRes.text()
+  console.log('CAPTION RAW:', raw.substring(0, 300))
+
+  let captions: string[] = []
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed === 'string') captions = [parsed]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    else if (Array.isArray(parsed)) captions = parsed.map((c: any) => typeof c === 'string' ? c : c.content || c.text || JSON.stringify(c))
+    else if (parsed?.captions) captions = Array.isArray(parsed.captions) ? parsed.captions : [String(parsed.captions)]
+    else if (parsed?.message && !parsed?.error) captions = [parsed.message]
+    else if (parsed?.error) return Response.json({ error: parsed.message || raw }, { status: 500 })
+    else captions = [JSON.stringify(parsed)]
+  } catch {
+    captions = [raw]
   }
 
-  const captions = parseRaw(raw)
-  console.log('PARSED CAPTIONS:', JSON.stringify(captions))
   return Response.json({ captions })
 }
