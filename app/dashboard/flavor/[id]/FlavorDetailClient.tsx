@@ -528,7 +528,8 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
           {testResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <span style={{ ...labelStyle }}>Generated Captions</span>
-              {testResult.map((caption, i) => (
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {testResult.map((c: any, i: number) => (
                 <div key={i} style={{
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -537,7 +538,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
                   fontSize: '13px',
                   color: 'var(--text)',
                 }}>
-                  {caption}
+                  {typeof c === 'string' ? c : c.text || c.content || c.caption || JSON.stringify(c)}
                 </div>
               ))}
             </div>

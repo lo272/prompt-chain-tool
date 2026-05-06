@@ -69,5 +69,6 @@ export async function POST(request: NextRequest) {
     // API returned plain text - treat it as the caption
     captions = [raw]
   }
+  console.log('PARSED CAPTIONS:', JSON.stringify(captions))
   return Response.json({ captions })
 }
