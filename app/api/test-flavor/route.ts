@@ -53,14 +53,28 @@ export async function POST(request: NextRequest) {
   const { imageId } = await registerRes.json()
 
   // Step 4: generate captions
-  const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
+  console.log('imageId type:', typeof imageId, 'value:', imageId)
+  console.log('humorFlavorId type:', typeof humorFlavorId, 'value:', humorFlavorId)
+  console.log('Sending to generate-captions:', JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }))
+
+  let captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
   })
 
+  // If first attempt fails, retry with humorFlavorId as string
+  if (!captionRes.ok) {
+    console.log('First attempt failed with status:', captionRes.status, '— retrying with string humorFlavorId')
+    captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
+      method: 'POST',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageId, humorFlavorId: String(humorFlavorId) }),
+    })
+  }
+
   const raw = await captionRes.text()
-  console.log('CAPTION RAW:', raw.substring(0, 300))
+  console.log('FULL RAW:', raw)
 
   let captions: string[] = []
   try {
