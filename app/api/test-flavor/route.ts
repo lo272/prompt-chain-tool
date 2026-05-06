@@ -47,26 +47,26 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify({ imageUrl: cdnUrl, isCommonUse: false }),
   })
   const registerText = await registerRes.text()
-  console.log('register response status:', registerRes.status)
-  console.log('register response body:', registerText)
-  if (!registerRes.ok) {
-    return Response.json({ error: `upload-image-from-url failed: ${registerText}` }, { status: registerRes.status })
+  console.log('register status:', registerRes.status, 'body:', registerText.substring(0, 300))
+
+  let imageId: string | undefined
+  if (registerRes.ok) {
+    try {
+      const registerJson = JSON.parse(registerText)
+      imageId = registerJson.imageId ?? registerJson.image_id ?? registerJson.id ?? registerJson.data?.id ?? registerJson.data?.imageId
+    } catch { /* ignore */ }
   }
-  const registerJson = JSON.parse(registerText)
-  console.log('register keys:', Object.keys(registerJson))
-  const imageId = registerJson.imageId ?? registerJson.image_id ?? registerJson.id ?? registerJson.data?.id ?? registerJson.data?.imageId
   console.log('resolved imageId:', imageId)
 
-  if (!imageId) {
-    return Response.json({ error: `Could not find imageId in response: ${registerText}` }, { status: 500 })
-  }
-
-  // Step 4: generate captions
-  console.log('Sending to generate-captions:', JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }))
+  // Step 4: generate captions — try imageId if we have it, otherwise fall back to imageUrl
+  const captionBody = imageId
+    ? { imageId, humorFlavorId: Number(humorFlavorId) }
+    : { imageUrl: cdnUrl, humorFlavorId: Number(humorFlavorId) }
+  console.log('Sending to generate-captions:', JSON.stringify(captionBody))
   const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
+    body: JSON.stringify(captionBody),
   })
 
   const raw = await captionRes.text()
