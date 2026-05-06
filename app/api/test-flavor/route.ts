@@ -51,16 +51,15 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: `upload-image-from-url failed: ${text}` }, { status: registerRes.status })
   }
   const { imageId } = await registerRes.json()
+  console.log('imageId value:', imageId, 'type:', typeof imageId)
+  console.log('humorFlavorId value:', humorFlavorId, 'type:', typeof humorFlavorId)
+  console.log('Request body:', JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }))
 
   // Step 4: generate captions
-  console.log('imageId type:', typeof imageId, 'value:', imageId)
-  console.log('humorFlavorId type:', typeof humorFlavorId, 'value:', humorFlavorId)
-  console.log('Sending to generate-captions:', JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }))
-
   const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
+    body: JSON.stringify({ imageId: Number(imageId), humorFlavorId: Number(humorFlavorId) }),
   })
 
   const raw = await captionRes.text()
