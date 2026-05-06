@@ -128,7 +128,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
   // Test section state
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [selectedImageId, setSelectedImageId] = useState('')
-  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<string[] | null>(null)
   const [testing, setTesting] = useState(false)
   const [testError, setTestError] = useState('')
 
@@ -255,6 +255,17 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
         throw new Error('Upload an image or select one from the list')
       }
 
+      const parseResponse = (json: unknown): string[] => {
+        if (Array.isArray(json)) return json
+        if (json && typeof json === 'object') {
+          const obj = json as Record<string, unknown>
+          if (Array.isArray(obj.captions)) return obj.captions as string[]
+          if (typeof obj.result === 'string') return [obj.result]
+        }
+        if (typeof json === 'string') return [json]
+        return [JSON.stringify(json)]
+      }
+
       if (selectedImageId) {
         const res = await fetch('https://api.almostcrackd.ai/pipeline/generate-captions', {
           method: 'POST',
@@ -262,7 +273,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
           body: JSON.stringify({ imageId: selectedImageId, humorFlavorId: flavor.id }),
         })
         const json = await res.json()
-        setTestResult(JSON.stringify(json, null, 2))
+        setTestResult(parseResponse(json))
       } else {
         const formData = new FormData()
         formData.append('image', imageFile!)
@@ -273,7 +284,8 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
           body: formData,
         })
         const json = await res.json()
-        setTestResult(JSON.stringify(json, null, 2))
+        if (json.error) throw new Error(JSON.stringify(json))
+        setTestResult(parseResponse(json))
       }
     } catch (err: unknown) {
       setTestError(err instanceof Error ? err.message : 'Request failed')
@@ -510,18 +522,21 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
             <div style={{ color: 'var(--danger)', fontSize: '13px' }}>{testError}</div>
           )}
           {testResult && (
-            <pre style={{
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '16px',
-              fontSize: '12px',
-              overflow: 'auto',
-              maxHeight: '400px',
-              color: 'var(--text)',
-            }}>
-              {testResult}
-            </pre>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ ...labelStyle }}>Generated Captions</span>
+              {testResult.map((caption, i) => (
+                <div key={i} style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  fontSize: '13px',
+                  color: 'var(--text)',
+                }}>
+                  {caption}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
