@@ -240,21 +240,56 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
       return
     }
 
-    const imageId = selectedImageId || undefined
-    const body: Record<string, unknown> = { humorFlavorId: flavor.id }
-    if (imageId) body.imageId = imageId
-    if (imageUrl) body.imageUrl = imageUrl
+    const authHeaders = { Authorization: `Bearer ${token}` }
 
     try {
-      const res = await fetch('https://api.almostcrackd.ai/pipeline/generate-captions', {
+      let imageId: string
+
+      if (selectedImageId) {
+        // Already have an imageId from the images table
+        imageId = selectedImageId
+      } else if (imageUrl) {
+        // Step 1: get a presigned upload URL
+        const presignRes = await fetch('https://api.almostcrackd.ai/pipeline/generate-presigned-url', {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentType: 'image/jpeg' }),
+        })
+        if (!presignRes.ok) throw new Error(`generate-presigned-url failed: ${presignRes.status}`)
+        const { presignedUrl, cdnUrl } = await presignRes.json()
+
+        // Step 2: fetch the image bytes and PUT them to the presigned URL
+        const imageRes = await fetch(imageUrl)
+        if (!imageRes.ok) throw new Error(`Failed to fetch image: ${imageRes.status}`)
+        const imageBytes = await imageRes.arrayBuffer()
+
+        const uploadRes = await fetch(presignedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: imageBytes,
+        })
+        if (!uploadRes.ok) throw new Error(`PUT to presigned URL failed: ${uploadRes.status}`)
+
+        // Step 3: register the uploaded image to get an imageId
+        const uploadImageRes = await fetch('https://api.almostcrackd.ai/pipeline/upload-image-from-url', {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: cdnUrl, isCommonUse: false }),
+        })
+        if (!uploadImageRes.ok) throw new Error(`upload-image-from-url failed: ${uploadImageRes.status}`)
+        const uploadImageJson = await uploadImageRes.json()
+        imageId = uploadImageJson.imageId
+      } else {
+        throw new Error('Provide an image URL or select an image')
+      }
+
+      // Step 4: generate captions
+      const captionRes = await fetch('https://api.almostcrackd.ai/pipeline/generate-captions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageId, humorFlavorId: flavor.id }),
       })
-      const json = await res.json()
+      const json = await captionRes.json()
       setTestResult(JSON.stringify(json, null, 2))
     } catch (err: unknown) {
       setTestError(err instanceof Error ? err.message : 'Request failed')
