@@ -70,6 +70,24 @@ export async function POST(request: NextRequest) {
   })
 
   const raw = await captionRes.text()
-  const captions = [raw]
-  return Response.json({ captions })
+
+  // If the API returned a JSON error object, surface it as an error
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed?.error) {
+      return Response.json({ error: parsed.message || raw }, { status: captionRes.status })
+    }
+    if (Array.isArray(parsed)) {
+      return Response.json({ captions: parsed.map((c: unknown) => typeof c === 'string' ? c : JSON.stringify(c)) })
+    }
+    if (parsed?.captions) {
+      const arr = Array.isArray(parsed.captions) ? parsed.captions : [parsed.captions]
+      return Response.json({ captions: arr.map((c: unknown) => typeof c === 'string' ? c : JSON.stringify(c)) })
+    }
+    // Any other JSON — stringify it as a single caption
+    return Response.json({ captions: [raw] })
+  } catch {
+    // Plain text — treat as a single caption
+    return Response.json({ captions: [raw] })
+  }
 }
