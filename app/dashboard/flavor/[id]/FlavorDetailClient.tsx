@@ -17,6 +17,7 @@ interface Step {
   llm_system_prompt: string | null
   llm_user_prompt: string | null
   order_by: number
+  llm_output_type_id: number
 }
 
 interface ImageRow {
@@ -119,6 +120,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
     llm_system_prompt: '',
     llm_user_prompt: '',
     order_by: (initialSteps.length + 1),
+    llm_output_type_id: 2,
   })
   const [savingStep, setSavingStep] = useState(false)
   const [stepError, setStepError] = useState('')
@@ -157,7 +159,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
         llm_user_prompt: newStep.llm_user_prompt,
         order_by: newStep.order_by,
         llm_input_type_id: 1,
-        llm_output_type_id: 1,
+        llm_output_type_id: newStep.llm_output_type_id,
         llm_model_id: 1,
         humor_flavor_step_type_id: 1,
         created_by_user_id: user?.id,
@@ -171,7 +173,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
       setStepError(`Error: ${error.message}`)
     } else if (data) {
       setSteps(prev => [...prev, data].sort((a, b) => a.order_by - b.order_by))
-      setNewStep({ description: '', llm_system_prompt: '', llm_user_prompt: '', order_by: steps.length + 2 })
+      setNewStep({ description: '', llm_system_prompt: '', llm_user_prompt: '', order_by: steps.length + 2, llm_output_type_id: 2 })
       setShowNewStep(false)
     }
   }
@@ -191,6 +193,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
         llm_system_prompt: editForm.llm_system_prompt,
         llm_user_prompt: editForm.llm_user_prompt,
         order_by: editForm.order_by,
+        llm_output_type_id: editForm.llm_output_type_id,
         modified_by_user_id: user?.id,
       })
       .eq('id', editingStep)
@@ -354,6 +357,13 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
               <label style={labelStyle}>User Prompt</label>
               <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={newStep.llm_user_prompt} onChange={e => setNewStep(p => ({ ...p, llm_user_prompt: e.target.value }))} />
             </div>
+            <div>
+              <label style={labelStyle}>Output Type</label>
+              <select style={inputStyle} value={newStep.llm_output_type_id} onChange={e => setNewStep(p => ({ ...p, llm_output_type_id: Number(e.target.value) }))}>
+                <option value={2}>Array — return a JSON array of strings e.g. ["caption1","caption2"]</option>
+                <option value={1}>String — return a single JSON-quoted string</option>
+              </select>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button onClick={createStep} disabled={savingStep} style={btnPrimary}>
                 {savingStep ? 'Saving...' : 'Create Step'}
@@ -393,6 +403,13 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
                     <div>
                       <label style={labelStyle}>User Prompt</label>
                       <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={editForm.llm_user_prompt || ''} onChange={e => setEditForm(p => ({ ...p, llm_user_prompt: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Output Type</label>
+                      <select style={inputStyle} value={editForm.llm_output_type_id ?? 2} onChange={e => setEditForm(p => ({ ...p, llm_output_type_id: Number(e.target.value) }))}>
+                        <option value={2}>Array — return a JSON array of strings e.g. ["caption1","caption2"]</option>
+                        <option value={1}>String — return a single JSON-quoted string</option>
+                      </select>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={saveEdit} style={btnPrimary}>Save</button>
