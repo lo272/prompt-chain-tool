@@ -56,8 +56,14 @@ export async function POST(request: NextRequest) {
   const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageId, humorFlavorId }),
+    body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
   })
-  const captionJson = await captionRes.json()
+  const rawText = await captionRes.text()
+  let captionJson: unknown
+  try {
+    captionJson = JSON.parse(rawText)
+  } catch {
+    captionJson = { result: rawText }
+  }
   return Response.json(captionJson, { status: captionRes.status })
 }
