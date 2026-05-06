@@ -37,9 +37,21 @@ export default function NewFlavorForm() {
     setLoading(true)
     setError('')
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setError('Not authenticated')
+      setLoading(false)
+      return
+    }
+
     const { data, error: err } = await supabase
       .from('humor_flavors')
-      .insert({ slug: name.trim(), description: description.trim() })
+      .insert({
+        slug: name.trim(),
+        description: description.trim(),
+        created_by_user_id: user.id,
+        modified_by_user_id: user.id,
+      })
       .select()
       .single()
 
