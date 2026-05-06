@@ -138,6 +138,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
   // --- Step CRUD ---
   async function createStep() {
     setSavingStep(true)
+    const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
       .from('humor_flavor_steps')
       .insert({
@@ -146,6 +147,12 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
         llm_system_prompt: newStep.llm_system_prompt,
         llm_user_prompt: newStep.llm_user_prompt,
         order_by: newStep.order_by,
+        llm_input_type_id: 1,
+        llm_output_type_id: 1,
+        llm_model_id: 1,
+        humor_flavor_step_type_id: 1,
+        created_by_user_id: user?.id,
+        modified_by_user_id: user?.id,
       })
       .select()
       .single()
@@ -164,6 +171,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
 
   async function saveEdit() {
     if (!editingStep) return
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase
       .from('humor_flavor_steps')
       .update({
@@ -171,6 +179,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
         llm_system_prompt: editForm.llm_system_prompt,
         llm_user_prompt: editForm.llm_user_prompt,
         order_by: editForm.order_by,
+        modified_by_user_id: user?.id,
       })
       .eq('id', editingStep)
     if (!error) {
