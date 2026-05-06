@@ -255,11 +255,15 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
         throw new Error('Upload an image or select one from the list')
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const extractText = (c: any): string =>
+        typeof c === 'string' ? c : c.text || c.content || JSON.stringify(c)
+
       const parseResponse = (json: unknown): string[] => {
-        if (Array.isArray(json)) return json
+        if (Array.isArray(json)) return json.map(extractText)
         if (json && typeof json === 'object') {
           const obj = json as Record<string, unknown>
-          if (Array.isArray(obj.captions)) return obj.captions as string[]
+          if (Array.isArray(obj.captions)) return (obj.captions as unknown[]).map(extractText)
           if (typeof obj.result === 'string') return [obj.result]
         }
         if (typeof json === 'string') return [json]
