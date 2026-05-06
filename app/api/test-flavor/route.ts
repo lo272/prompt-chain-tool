@@ -46,20 +46,27 @@ export async function POST(request: NextRequest) {
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageUrl: cdnUrl, isCommonUse: false }),
   })
+  const registerText = await registerRes.text()
+  console.log('register response status:', registerRes.status)
+  console.log('register response body:', registerText)
   if (!registerRes.ok) {
-    const text = await registerRes.text()
-    return Response.json({ error: `upload-image-from-url failed: ${text}` }, { status: registerRes.status })
+    return Response.json({ error: `upload-image-from-url failed: ${registerText}` }, { status: registerRes.status })
   }
-  const { imageId } = await registerRes.json()
-  console.log('imageId value:', imageId, 'type:', typeof imageId)
-  console.log('humorFlavorId value:', humorFlavorId, 'type:', typeof humorFlavorId)
-  console.log('Request body:', JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }))
+  const registerJson = JSON.parse(registerText)
+  console.log('register keys:', Object.keys(registerJson))
+  const imageId = registerJson.imageId ?? registerJson.image_id ?? registerJson.id ?? registerJson.data?.id ?? registerJson.data?.imageId
+  console.log('resolved imageId:', imageId)
+
+  if (!imageId) {
+    return Response.json({ error: `Could not find imageId in response: ${registerText}` }, { status: 500 })
+  }
 
   // Step 4: generate captions
+  console.log('Sending to generate-captions:', JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }))
   const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageId: Number(imageId), humorFlavorId: Number(humorFlavorId) }),
+    body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
   })
 
   const raw = await captionRes.text()
