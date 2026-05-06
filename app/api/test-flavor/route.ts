@@ -58,24 +58,20 @@ export async function POST(request: NextRequest) {
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
   })
-  const rawText = await captionRes.text()
+  const raw = await captionRes.text()
+  console.log('RAW CAPTION RESPONSE:', raw)
 
-  let captions: string[]
+  let captions: string[] = []
   try {
-    const parsed = JSON.parse(rawText)
-    if (Array.isArray(parsed)) {
-      captions = parsed
-    } else if (parsed && Array.isArray(parsed.captions)) {
-      captions = parsed.captions
-    } else if (typeof parsed === 'string') {
-      captions = [parsed]
-    } else {
-      // pass through error objects from the API unchanged
-      return Response.json(parsed, { status: captionRes.status })
-    }
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) captions = parsed
+    else if (Array.isArray(parsed?.captions)) captions = parsed.captions
+    else if (Array.isArray(parsed?.data)) captions = parsed.data
+    else if (parsed?.result) captions = [String(parsed.result)]
+    else captions = [raw]
   } catch {
-    captions = [rawText]
+    captions = raw.split('\n').filter(Boolean)
   }
 
-  return Response.json({ captions }, { status: captionRes.status })
+  return Response.json({ captions })
 }
