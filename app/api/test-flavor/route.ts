@@ -59,19 +59,15 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify({ imageId, humorFlavorId: Number(humorFlavorId) }),
   })
   const raw = await captionRes.text()
-  console.log('RAW CAPTION RESPONSE:', raw)
-
   let captions: string[] = []
   try {
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) captions = parsed
-    else if (Array.isArray(parsed?.captions)) captions = parsed.captions
-    else if (Array.isArray(parsed?.data)) captions = parsed.data
-    else if (parsed?.result) captions = [String(parsed.result)]
-    else captions = [raw]
+    else if (parsed?.captions) captions = Array.isArray(parsed.captions) ? parsed.captions : [String(parsed.captions)]
+    else captions = [String(parsed)]
   } catch {
-    captions = raw.split('\n').filter(Boolean)
+    // API returned plain text - treat it as the caption
+    captions = [raw]
   }
-
   return Response.json({ captions })
 }
