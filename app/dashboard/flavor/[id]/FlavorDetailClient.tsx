@@ -114,6 +114,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
     order_by: (initialSteps.length + 1),
   })
   const [savingStep, setSavingStep] = useState(false)
+  const [stepError, setStepError] = useState('')
 
   // Test section state
   const [imageUrl, setImageUrl] = useState('')
@@ -138,6 +139,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
   // --- Step CRUD ---
   async function createStep() {
     setSavingStep(true)
+    setStepError('')
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase
       .from('humor_flavor_steps')
@@ -157,7 +159,10 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
       .select()
       .single()
     setSavingStep(false)
-    if (!error && data) {
+    if (error) {
+      console.error('createStep error:', error)
+      setStepError(`Error: ${error.message}`)
+    } else if (data) {
       setSteps(prev => [...prev, data].sort((a, b) => a.order_by - b.order_by))
       setNewStep({ description: '', llm_system_prompt: '', llm_user_prompt: '', order_by: steps.length + 2 })
       setShowNewStep(false)
@@ -333,10 +338,11 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
               <label style={labelStyle}>User Prompt</label>
               <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }} value={newStep.llm_user_prompt} onChange={e => setNewStep(p => ({ ...p, llm_user_prompt: e.target.value }))} />
             </div>
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button onClick={createStep} disabled={savingStep} style={btnPrimary}>
                 {savingStep ? 'Saving...' : 'Create Step'}
               </button>
+              {stepError && <span style={{ fontSize: '12px', color: 'var(--danger)' }}>{stepError}</span>}
             </div>
           </div>
         )}
