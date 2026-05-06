@@ -10,7 +10,7 @@ export default async function FlavorDetailPage({ params }: Props) {
   const { id } = await params
   const { supabase } = await requireAuth()
 
-  const [{ data: flavor }, { data: steps }, { data: images }] = await Promise.all([
+  const [{ data: flavor }, { data: steps }, { data: images }, { data: captions }] = await Promise.all([
     supabase
       .from('humor_flavors')
       .select('*')
@@ -24,6 +24,12 @@ export default async function FlavorDetailPage({ params }: Props) {
     supabase
       .from('images')
       .select('id, url, title')
+      .limit(50),
+    supabase
+      .from('captions')
+      .select('id, content, created_datetime_utc')
+      .eq('humor_flavor_id', id)
+      .order('created_datetime_utc', { ascending: false })
       .limit(50),
   ])
 
@@ -45,6 +51,7 @@ export default async function FlavorDetailPage({ params }: Props) {
         flavor={flavor}
         initialSteps={steps || []}
         images={images || []}
+        captions={captions || []}
       />
     </div>
   )

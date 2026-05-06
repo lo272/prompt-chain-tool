@@ -25,10 +25,17 @@ interface ImageRow {
   title: string | null
 }
 
+interface CaptionRow {
+  id: string
+  content: string | null
+  created_datetime_utc: string
+}
+
 interface Props {
   flavor: Flavor
   initialSteps: Step[]
   images: ImageRow[]
+  captions: CaptionRow[]
 }
 
 const inputStyle = {
@@ -90,7 +97,7 @@ const btnDanger = {
   cursor: 'pointer',
 }
 
-export default function FlavorDetailClient({ flavor, initialSteps, images }: Props) {
+export default function FlavorDetailClient({ flavor, initialSteps, images, captions }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -500,6 +507,32 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
             </pre>
           )}
         </div>
+      </div>
+
+      {/* Captions for this flavor */}
+      <div style={cardStyle}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Captions ({captions.length})</h2>
+        {captions.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
+            No captions yet. Test the flavor above to generate some.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {captions.map(c => (
+              <div key={c.id} style={{
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                background: 'var(--bg)',
+              }}>
+                <p style={{ fontSize: '14px', color: 'var(--text)', margin: 0 }}>{c.content}</p>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  {new Date(c.created_datetime_utc).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   )
