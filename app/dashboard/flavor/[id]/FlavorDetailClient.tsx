@@ -257,7 +257,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const extractText = (c: any): string =>
-        typeof c === 'string' ? c : c.text || c.content || JSON.stringify(c)
+        typeof c === 'string' ? c : c.text || c.content || c.caption || c.caption_text || c.value || JSON.stringify(c)
 
       const parseResponse = (json: unknown): string[] => {
         if (Array.isArray(json)) return json.map(extractText)
