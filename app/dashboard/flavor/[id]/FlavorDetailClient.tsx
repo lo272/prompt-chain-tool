@@ -117,7 +117,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
   const [stepError, setStepError] = useState('')
 
   // Test section state
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [selectedImageId, setSelectedImageId] = useState('')
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
@@ -241,13 +241,11 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
     }
 
     try {
-      if (!imageUrl && !selectedImageId) {
-        throw new Error('Provide an image URL or select an image')
+      if (!imageFile && !selectedImageId) {
+        throw new Error('Upload an image or select one from the list')
       }
 
-      let body: Record<string, unknown>
       if (selectedImageId) {
-        // Already have an imageId — skip upload, call generate-captions directly
         const res = await fetch('https://api.almostcrackd.ai/pipeline/generate-captions', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -256,12 +254,13 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
         const json = await res.json()
         setTestResult(JSON.stringify(json, null, 2))
       } else {
-        // imageUrl path: proxy through server route to avoid CORS
-        body = { imageUrl, humorFlavorId: flavor.id }
+        const formData = new FormData()
+        formData.append('image', imageFile!)
+        formData.append('humorFlavorId', String(flavor.id))
         const res = await fetch('/api/test-flavor', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
         })
         const json = await res.json()
         setTestResult(JSON.stringify(json, null, 2))
@@ -449,12 +448,12 @@ export default function FlavorDetailClient({ flavor, initialSteps, images }: Pro
         <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Test Flavor</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={labelStyle}>Image URL</label>
+            <label style={labelStyle}>Upload Image</label>
             <input
+              type="file"
+              accept="image/*"
               style={inputStyle}
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              placeholder="https://..."
+              onChange={e => setImageFile(e.target.files?.[0] ?? null)}
             />
           </div>
           {images.length > 0 && (

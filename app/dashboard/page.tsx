@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAuth } from '@/app/components/AuthGate'
 import Header from '@/app/components/Header'
+import FlavorList from './FlavorList'
 
 export default async function DashboardPage() {
   const { supabase } = await requireAuth()
@@ -38,47 +39,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {!flavors || flavors.length === 0 ? (
-          <div style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            padding: '40px',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}>
-            No humor flavors yet. Create one to get started.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {flavors.map((flavor) => (
-              <Link
-                key={flavor.id}
-                href={`/dashboard/flavor/${flavor.id}`}
-                style={{ textDecoration: 'none' }}
-              >
-                <div style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px',
-                  padding: '20px 24px',
-                  cursor: 'pointer',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        {flavor.slug}
-                      </h2>
-                      {flavor.description && (
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{flavor.description}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <FlavorList flavors={flavors || []} />
       </main>
     </div>
   )

@@ -8,9 +8,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Missing Authorization header' }, { status: 401 })
   }
 
-  const { imageUrl, humorFlavorId } = await request.json()
-  if (!imageUrl || !humorFlavorId) {
-    return Response.json({ error: 'Missing imageUrl or humorFlavorId' }, { status: 400 })
+  const form = await request.formData()
+  const file = form.get('image') as File | null
+  const humorFlavorId = form.get('humorFlavorId') as string | null
+
+  if (!file || !humorFlavorId) {
+    return Response.json({ error: 'Missing image or humorFlavorId' }, { status: 400 })
   }
 
   const authHeaders = { Authorization: token }
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
   const presignRes = await fetch(`${API_BASE}/pipeline/generate-presigned-url`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contentType: 'image/jpeg' }),
+    body: JSON.stringify({ contentType: file.type || 'image/jpeg' }),
   })
   if (!presignRes.ok) {
     const text = await presignRes.text()
@@ -27,17 +30,11 @@ export async function POST(request: NextRequest) {
   }
   const { presignedUrl, cdnUrl } = await presignRes.json()
 
-  // Step 2: fetch image bytes server-side and PUT to S3
-  const imageRes = await fetch(imageUrl)
-  if (!imageRes.ok) {
-    return Response.json({ error: `Failed to fetch image: ${imageRes.status}` }, { status: 400 })
-  }
-  const imageBytes = await imageRes.arrayBuffer()
-
+  // Step 2: PUT file bytes directly to S3
   const uploadRes = await fetch(presignedUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': 'image/jpeg' },
-    body: imageBytes,
+    headers: { 'Content-Type': file.type || 'image/jpeg' },
+    body: await file.arrayBuffer(),
   })
   if (!uploadRes.ok) {
     return Response.json({ error: `S3 upload failed: ${uploadRes.status}` }, { status: 500 })
