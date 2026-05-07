@@ -20,17 +20,28 @@ function extractImageId(obj: any): string | undefined {
   return undefined
 }
 
+function extractCaptionText(c: unknown): string {
+  if (typeof c === 'string') return c
+  if (typeof c === 'object' && c !== null) {
+    const obj = c as Record<string, unknown>
+    for (const key of ['content', 'text', 'caption', 'caption_text', 'value']) {
+      if (typeof obj[key] === 'string') return obj[key] as string
+    }
+  }
+  return JSON.stringify(c)
+}
+
 function extractCaptions(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw)
     if (typeof parsed === 'string') return [parsed]
-    if (Array.isArray(parsed)) return parsed.map((c: unknown) => typeof c === 'string' ? c : JSON.stringify(c))
+    if (Array.isArray(parsed)) return parsed.map(extractCaptionText)
     if (parsed?.captions) {
       const arr = Array.isArray(parsed.captions) ? parsed.captions : [parsed.captions]
-      return arr.map((c: unknown) => typeof c === 'string' ? c : JSON.stringify(c))
+      return arr.map(extractCaptionText)
     }
     if (parsed?.data && Array.isArray(parsed.data)) {
-      return parsed.data.map((c: unknown) => typeof c === 'string' ? c : JSON.stringify(c))
+      return parsed.data.map(extractCaptionText)
     }
     return [raw]
   } catch {
