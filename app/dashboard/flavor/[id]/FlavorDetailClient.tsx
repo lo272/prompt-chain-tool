@@ -255,42 +255,23 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
         throw new Error('Upload an image or select one from the list')
       }
 
+      const formData = new FormData()
+      if (imageFile) formData.append('image', imageFile)
+      if (selectedImageId) formData.append('selectedImageId', selectedImageId)
+      formData.append('humorFlavorId', String(flavor.id))
+
+      const res = await fetch('/api/test-flavor', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const extractText = (c: any): string =>
-        typeof c === 'string' ? c : c.text || c.content || c.caption || c.caption_text || c.value || JSON.stringify(c)
-
-      const parseResponse = (json: unknown): string[] => {
-        if (Array.isArray(json)) return json.map(extractText)
-        if (json && typeof json === 'object') {
-          const obj = json as Record<string, unknown>
-          if (Array.isArray(obj.captions)) return (obj.captions as unknown[]).map(extractText)
-          if (typeof obj.result === 'string') return [obj.result]
-        }
-        if (typeof json === 'string') return [json]
-        return [JSON.stringify(json)]
-      }
-
-      if (selectedImageId) {
-        const res = await fetch('https://api.almostcrackd.ai/pipeline/generate-captions', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageId: selectedImageId, humorFlavorId: Number(flavor.id) }),
-        })
-        const json = await res.json()
-        setTestResult(parseResponse(json))
-      } else {
-        const formData = new FormData()
-        formData.append('image', imageFile!)
-        formData.append('humorFlavorId', String(flavor.id))
-        const res = await fetch('/api/test-flavor', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        })
-        const json = await res.json()
-        if (json.error) throw new Error(JSON.stringify(json))
-        setTestResult(parseResponse(json))
-      }
+      const captions: string[] = (json.captions || []).map((c: any) =>
+        typeof c === 'string' ? c : c.text || c.content || c.caption || JSON.stringify(c)
+      )
+      setTestResult(captions)
     } catch (err: unknown) {
       setTestError(err instanceof Error ? err.message : 'Request failed')
     }
