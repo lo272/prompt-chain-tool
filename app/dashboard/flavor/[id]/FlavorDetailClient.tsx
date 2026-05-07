@@ -274,7 +274,7 @@ export default function FlavorDetailClient({ flavor, initialSteps, images, capti
         const res = await fetch('https://api.almostcrackd.ai/pipeline/generate-captions', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageId: selectedImageId, humorFlavorId: flavor.id }),
+          body: JSON.stringify({ imageId: selectedImageId, humorFlavorId: Number(flavor.id) }),
         })
         const json = await res.json()
         setTestResult(parseResponse(json))
