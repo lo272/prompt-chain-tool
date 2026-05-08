@@ -85,6 +85,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ captions: extractCaptions(raw) })
   }
 
+  if (!file) {
+    return Response.json({ error: 'Missing image file' }, { status: 400 })
+  }
+
   // Step 1: get presigned upload URL
   const presignRes = await fetch(`${API_BASE}/pipeline/generate-presigned-url`, {
     method: 'POST',
